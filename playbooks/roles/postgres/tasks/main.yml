@@ -4,6 +4,7 @@
   ansible.builtin.dnf:
     name:
       - postgresql-server
+      - postgresql-server-devel
       - postgresql
       - postgresql-contrib
     state: present
