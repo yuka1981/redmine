@@ -1,37 +1,21 @@
 ---
-- name: Import PGDG GPG key
-  ansible.builtin.rpm_key:
-    state: present
-    key: https://download.postgresql.org/pub/repos/yum/keys/RPM-GPG-KEY-PGDG
-
-- name: Install PostgreSQL YUM repository
-  ansible.builtin.dnf:
-    name: https://download.postgresql.org/pub/repos/yum/reporpms/EL-10-x86_64/pgdg-redhat-repo-latest.noarch.rpm
-    state: present
-
-- name: Disable default PostgreSQL module
-  ansible.builtin.command:
-    cmd: dnf -qy module disable postgresql
-  args:
-    creates: /etc/dnf/modules.d/postgresql.module
-
-- name: Install PostgreSQL 14 packages
+- name: Install PostgreSQL packages
   ansible.builtin.dnf:
     name:
-      - postgresql14-server
-      - postgresql14
-      - postgresql14-contrib
+      - postgresql-server
+      - postgresql
+      - postgresql-contrib
     state: present
 
-- name: Initialize PostgreSQL 14 database
+- name: Initialize PostgreSQL database
   ansible.builtin.command:
-    cmd: '/usr/pgsql-14/bin/postgresql-14-setup initdb'
+    cmd: '/usr/bin/postgresql-setup --initdb'
   args:
-    creates: '/var/lib/pgsql/14/data/PG_VERSION'
+    creates: '/var/lib/pgsql/data/PG_VERSION'
 
 - name: Ensure PostgreSQL service is enabled and running
   ansible.builtin.service:
-    name: postgresql-14
+    name: postgresql
     state: started
     enabled: true
 
