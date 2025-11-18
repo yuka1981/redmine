@@ -6,4 +6,5 @@ production:
   username: {{ redmine_db_user }}
   password: "{{ redmine_db_password }}"
   encoding: utf8
+  schema_search_path: {{ redmine_db_name }}
   pool: 5
