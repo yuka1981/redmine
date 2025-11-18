@@ -1,0 +1,24 @@
+---
+- name: Deploy Puma configuration
+  ansible.builtin.template:
+    src: puma.rb.j2
+    dest: '{{ redmine_root }}/config/puma.rb'
+    owner: '{{ redmine_user }}'
+    group: '{{ redmine_group }}'
+    mode: '0640'
+
+- name: Install redmine-puma systemd unit
+  ansible.builtin.template:
+    src: redmine-puma.service.j2
+    dest: /etc/systemd/system/redmine-puma.service
+    mode: '0644'
+
+- name: Reload systemd daemon
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Ensure redmine-puma service is enabled and running
+  ansible.builtin.service:
+    name: redmine-puma
+    state: started
+    enabled: true

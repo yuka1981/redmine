@@ -1,0 +1,76 @@
+---
+- name: Create redmine group
+  ansible.builtin.group:
+    name: '{{ redmine_group }}'
+    system: true
+
+- name: Create redmine service account
+  ansible.builtin.user:
+    name: '{{ redmine_user }}'
+    group: '{{ redmine_group }}'
+    home: '{{ redmine_root_base }}'
+    shell: '/usr/sbin/nologin'
+    create_home: true
+    system: true
+    comment: 'Redmine service account'
+
+- name: Ensure Redmine root directory exists
+  ansible.builtin.file:
+    path: '{{ redmine_root }}'
+    state: directory
+    owner: '{{ redmine_user }}'
+    group: '{{ redmine_group }}'
+    mode: '0750'
+
+- name: Download Redmine release
+  ansible.builtin.get_url:
+    url: 'https://www.redmine.org/releases/redmine-{{ redmine_version }}.tar.gz'
+    dest: '/usr/local/src/redmine-{{ redmine_version }}.tar.gz'
+    mode: '0644'
+
+- name: Extract Redmine
+  ansible.builtin.unarchive:
+    src: '/usr/local/src/redmine-{{ redmine_version }}.tar.gz'
+    dest: '{{ redmine_root }}'
+    remote_src: true
+    extra_opts: ['--strip-components=1']
+    creates: '{{ redmine_root }}/Gemfile'
+    owner: '{{ redmine_user }}'
+    group: '{{ redmine_group }}'
+
+- name: Ensure Redmine runtime directories
+  ansible.builtin.file:
+    path: '{{ item }}'
+    state: directory
+    owner: '{{ redmine_user }}'
+    group: '{{ redmine_group }}'
+    mode: '0750'
+  loop:
+    - '{{ redmine_root }}'
+    - '{{ redmine_root }}/tmp'
+    - '{{ redmine_root }}/tmp/pids'
+    - '{{ redmine_root }}/tmp/sockets'
+    - '{{ redmine_root }}/log'
+    - '{{ redmine_root }}/files'
+
+- name: Deploy Redmine database configuration
+  ansible.builtin.template:
+    src: database.yml.j2
+    dest: '{{ redmine_root }}/config/database.yml'
+    owner: '{{ redmine_user }}'
+    group: '{{ redmine_group }}'
+    mode: '0640'
+
+- name: Configure bundler path for Redmine
+  ansible.builtin.command:
+    cmd: "{{ ruby_prefix }}/bin/bundle config set --local path 'vendor/bundle'"
+    chdir: '{{ redmine_root }}'
+  become_user: '{{ redmine_user }}'
+
+- name: Install Redmine gem dependencies
+  ansible.builtin.command:
+    cmd: '{{ ruby_prefix }}/bin/bundle install --without development test'
+    chdir: '{{ redmine_root }}'
+  become_user: '{{ redmine_user }}'
+  args:
+    creates: '{{ redmine_root }}/vendor/bundle'

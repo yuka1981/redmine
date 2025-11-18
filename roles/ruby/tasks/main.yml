@@ -1,0 +1,40 @@
+---
+- name: Download Ruby source tarball
+  ansible.builtin.get_url:
+    url: 'https://cache.ruby-lang.org/pub/ruby/3.4/ruby-{{ ruby_version }}.tar.gz'
+    dest: '/usr/local/src/ruby-{{ ruby_version }}.tar.gz'
+    mode: '0644'
+
+- name: Extract Ruby source
+  ansible.builtin.unarchive:
+    src: '/usr/local/src/ruby-{{ ruby_version }}.tar.gz'
+    dest: '/usr/local/src'
+    remote_src: true
+    creates: '/usr/local/src/ruby-{{ ruby_version }}'
+
+- name: Configure Ruby build
+  ansible.builtin.command:
+    cmd: './configure --prefix={{ ruby_prefix }} --disable-install-doc --enable-shared'
+    chdir: '/usr/local/src/ruby-{{ ruby_version }}'
+  args:
+    creates: '{{ ruby_prefix }}/bin/ruby'
+
+- name: Compile Ruby
+  ansible.builtin.command:
+    cmd: 'make -j {{ ansible_facts.processor_vcpus | default(2) }}'
+    chdir: '/usr/local/src/ruby-{{ ruby_version }}'
+  args:
+    creates: '/usr/local/src/ruby-{{ ruby_version }}/ruby'
+
+- name: Install Ruby
+  ansible.builtin.command:
+    cmd: 'make install'
+    chdir: '/usr/local/src/ruby-{{ ruby_version }}'
+  args:
+    creates: '{{ ruby_prefix }}/bin/ruby'
+
+- name: Install bundler gem
+  ansible.builtin.command:
+    cmd: '{{ ruby_prefix }}/bin/gem install bundler'
+  args:
+    creates: '{{ ruby_prefix }}/bin/bundle'

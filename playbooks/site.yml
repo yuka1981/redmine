@@ -1,0 +1,12 @@
+---
+- hosts: redmine_servers
+  become: true
+
+  roles:
+    - role: common
+    - role: ruby
+    - role: postgres
+    - role: redmine
+    - role: puma
+    - role: nginx
+    - role: selinux

@@ -1,0 +1,39 @@
+---
+- name: Install PostgreSQL 14 packages
+  ansible.builtin.dnf:
+    name:
+      - postgresql14-server
+      - postgresql14
+      - postgresql14-contrib
+    state: present
+
+- name: Initialize PostgreSQL 14 database
+  ansible.builtin.command:
+    cmd: '/usr/pgsql-14/bin/postgresql-14-setup initdb'
+  args:
+    creates: '/var/lib/pgsql/14/data/PG_VERSION'
+
+- name: Ensure PostgreSQL service is enabled and running
+  ansible.builtin.service:
+    name: postgresql-14
+    state: started
+    enabled: true
+
+- name: Install psycopg2 for PostgreSQL modules
+  ansible.builtin.dnf:
+    name: python3-psycopg2
+    state: present
+
+- name: Ensure redmine database user exists
+  community.postgresql.postgresql_user:
+    name: '{{ redmine_db_user }}'
+    password: '{{ redmine_db_password }}'
+    db: '{{ redmine_db_name }}'
+    role_attr_flags: 'LOGIN'
+  become_user: postgres
+
+- name: Ensure redmine database exists
+  community.postgresql.postgresql_db:
+    name: '{{ redmine_db_name }}'
+    owner: '{{ redmine_db_user }}'
+  become_user: postgres

@@ -1,0 +1,23 @@
+---
+- name: Ensure SELinux is enforcing
+  ansible.posix.selinux:
+    policy: targeted
+    state: enforcing
+
+- name: Label Redmine Puma sockets directory as httpd_var_run_t
+  community.general.sefcontext:
+    target: '{{ redmine_root }}/tmp/sockets(/.*)?'
+    setype: httpd_var_run_t
+    state: present
+
+- name: Apply SELinux context to sockets directory
+  ansible.builtin.command:
+    cmd: 'restorecon -Rv {{ redmine_root }}/tmp/sockets'
+  args:
+    warn: false
+
+- name: Allow httpd to make outbound network connections (optional)
+  ansible.posix.seboolean:
+    name: httpd_can_network_connect
+    state: true
+    persistent: true

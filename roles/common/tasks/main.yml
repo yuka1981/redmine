@@ -1,0 +1,48 @@
+---
+- name: Ensure Rocky Linux CRB repository is enabled
+  ansible.builtin.ini_file:
+    path: /etc/yum.repos.d/rocky.repo
+    section: crb
+    option: enabled
+    value: '1'
+    state: present
+    no_extra_spaces: true
+
+- name: Install epel-release package
+  ansible.builtin.dnf:
+    name: epel-release
+    state: present
+
+- name: Install base build and runtime packages
+  ansible.builtin.dnf:
+    name:
+      - gcc
+      - gcc-c++
+      - make
+      - autoconf
+      - bison
+      - openssl-devel
+      - libffi-devel
+      - readline-devel
+      - zlib-devel
+      - gdbm-devel
+      - ncurses-devel
+      - libyaml-devel
+      - tar
+      - bzip2
+      - curl
+      - git
+      - ImageMagick
+      - ImageMagick-devel
+    state: present
+
+- name: Ensure base /opt directories exist
+  ansible.builtin.file:
+    path: '{{ item }}'
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  loop:
+    - '{{ ruby_prefix_base }}'
+    - '{{ redmine_root_base }}'

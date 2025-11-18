@@ -1,0 +1,27 @@
+---
+- name: Install nginx
+  ansible.builtin.dnf:
+    name: nginx
+    state: present
+
+- name: Deploy redmine nginx conf
+  ansible.builtin.template:
+    src: redmine.conf.j2
+    dest: /etc/nginx/conf.d/redmine.conf
+    mode: '0644'
+
+- name: Test nginx configuration
+  ansible.builtin.command: nginx -t
+  register: nginx_test
+  changed_when: false
+
+- name: Fail if nginx config test failed
+  ansible.builtin.fail:
+    msg: 'nginx -t failed: {{ nginx_test.stderr }}'
+  when: nginx_test.rc != 0
+
+- name: Enable and restart nginx
+  ansible.builtin.service:
+    name: nginx
+    state: restarted
+    enabled: true

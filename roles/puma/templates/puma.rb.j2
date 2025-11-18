@@ -1,0 +1,21 @@
+app_dir    = "{{ redmine_root }}"
+directory app_dir
+
+max_threads_count = ENV.fetch("RAILS_MAX_THREADS", 5).to_i
+min_threads_count = ENV.fetch("RAILS_MIN_THREADS", max_threads_count).to_i
+threads min_threads_count, max_threads_count
+
+environment ENV.fetch("RAILS_ENV") { "production" }
+
+workers ENV.fetch("WEB_CONCURRENCY", 2)
+
+bind "unix://{{ redmine_root }}/tmp/sockets/puma.sock"
+
+pidfile    "{{ redmine_root }}/tmp/pids/puma.pid"
+state_path "{{ redmine_root }}/tmp/pids/puma.state"
+
+stdout_redirect "{{ redmine_root }}/log/puma.stdout.log",
+                "{{ redmine_root }}/log/puma.stderr.log",
+                true
+
+plugin :tmp_restart

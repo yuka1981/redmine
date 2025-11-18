@@ -1,0 +1,26 @@
+[Unit]
+Description=Redmine Puma Application Server
+After=network.target
+
+[Service]
+Type=simple
+User={{ redmine_user }}
+Group={{ redmine_group }}
+WorkingDirectory={{ redmine_root }}
+
+Environment=RAILS_ENV=production
+Environment=PATH={{ ruby_prefix }}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
+UMask=0007
+
+ExecStart={{ ruby_prefix }}/bin/bundle exec puma -C config/puma.rb
+ExecReload={{ ruby_prefix }}/bin/bundle exec pumactl -S tmp/pids/puma.state phased-restart
+
+Restart=always
+RestartSec=5
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=redmine-puma
+
+[Install]
+WantedBy=multi-user.target

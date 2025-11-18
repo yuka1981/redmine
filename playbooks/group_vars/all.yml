@@ -1,0 +1,16 @@
+---
+ruby_version: '3.4.7'
+ruby_prefix_base: '/opt/ruby'
+ruby_prefix: '{{ ruby_prefix_base }}/{{ ruby_version }}'
+
+redmine_version: '6.1.0'
+redmine_root_base: '/opt/redmine'
+redmine_root: '{{ redmine_root_base }}/{{ redmine_version }}'
+redmine_user: 'redmine'
+redmine_group: 'redmine'
+
+redmine_db_name: 'redmine'
+redmine_db_user: 'redmine'
+redmine_db_password: ''
+redmine_db_host: '127.0.0.1'
+redmine_db_port: 5432
