@@ -13,8 +13,6 @@
 - name: Apply SELinux context to sockets directory
   ansible.builtin.command:
     cmd: 'restorecon -Rv {{ redmine_root }}/tmp/sockets'
-  args:
-    warn: false
 
 - name: Allow httpd to make outbound network connections (optional)
   ansible.posix.seboolean:
