@@ -1,5 +1,6 @@
 ---
 - name: Install PostgreSQL packages
+  become: true
   ansible.builtin.dnf:
     name:
       - postgresql-server
@@ -8,56 +9,75 @@
     state: present
 
 - name: Initialize PostgreSQL database
+  become: true
   ansible.builtin.command:
-    cmd: '/usr/bin/postgresql-setup --initdb'
+    cmd: /usr/bin/postgresql-setup --initdb
   args:
-    creates: '/var/lib/pgsql/data/PG_VERSION'
+    creates: /var/lib/pgsql/data/PG_VERSION
 
 - name: Ensure PostgreSQL service is enabled and running
+  become: true
   ansible.builtin.service:
     name: postgresql
     state: started
     enabled: true
 
 - name: Install psycopg2 for PostgreSQL modules
+  become: true
   ansible.builtin.dnf:
     name: python3-psycopg2
     state: present
 
+# ===== redmine role =====
+
 - name: Check if redmine role exists
+  become: true # 用 root 跑
   ansible.builtin.command:
     argv:
+      - sudo
+      - -u
+      - postgres
       - psql
-      - '-tAc'
+      - -tAc
       - "SELECT 1 FROM pg_roles WHERE rolname='{{ redmine_db_user }}'"
   register: redmine_role_exists
-  become_user: postgres
   changed_when: false
 
 - name: Create redmine role
+  become: true
   ansible.builtin.command:
     argv:
+      - sudo
+      - -u
+      - postgres
       - psql
-      - '-c'
+      - -c
       - "CREATE ROLE {{ redmine_db_user }} LOGIN ENCRYPTED PASSWORD '{{ redmine_db_password }}' NOINHERIT VALID UNTIL 'infinity';"
   when: redmine_role_exists.stdout.strip() != '1'
-  become_user: postgres
+
+# ===== redmine database =====
 
 - name: Check if redmine database exists
+  become: true
   ansible.builtin.command:
     argv:
+      - sudo
+      - -u
+      - postgres
       - psql
-      - '-tAc'
+      - -tAc
       - "SELECT 1 FROM pg_database WHERE datname='{{ redmine_db_name }}'"
   register: redmine_db_exists
-  become_user: postgres
   changed_when: false
 
 - name: Create redmine database
+  become: true
   ansible.builtin.command:
     argv:
+      - sudo
+      - -u
+      - postgres
       - psql
-      - '-c'
+      - -c
       - "CREATE DATABASE {{ redmine_db_name }} WITH ENCODING='UTF8' OWNER={{ redmine_db_user }};"
   when: redmine_db_exists.stdout.strip() != '1'
-  become_user: postgres
