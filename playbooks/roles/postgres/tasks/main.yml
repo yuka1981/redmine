@@ -1,0 +1,74 @@
+---
+- name: Install PostgreSQL YUM repository
+  ansible.builtin.dnf:
+    name: https://download.postgresql.org/pub/repos/yum/reporpms/EL-10-x86_64/pgdg-redhat-repo-latest.noarch.rpm
+    state: present
+
+- name: Disable default PostgreSQL module
+  ansible.builtin.command:
+    cmd: dnf -qy module disable postgresql
+  args:
+    creates: /etc/dnf/modules.d/postgresql.module
+
+- name: Install PostgreSQL 14 packages
+  ansible.builtin.dnf:
+    name:
+      - postgresql14-server
+      - postgresql14
+      - postgresql14-contrib
+    state: present
+
+- name: Initialize PostgreSQL 14 database
+  ansible.builtin.command:
+    cmd: '/usr/pgsql-14/bin/postgresql-14-setup initdb'
+  args:
+    creates: '/var/lib/pgsql/14/data/PG_VERSION'
+
+- name: Ensure PostgreSQL service is enabled and running
+  ansible.builtin.service:
+    name: postgresql-14
+    state: started
+    enabled: true
+
+- name: Install psycopg2 for PostgreSQL modules
+  ansible.builtin.dnf:
+    name: python3-psycopg2
+    state: present
+
+- name: Check if redmine role exists
+  ansible.builtin.command:
+    argv:
+      - psql
+      - '-tAc'
+      - "SELECT 1 FROM pg_roles WHERE rolname='{{ redmine_db_user }}'"
+  register: redmine_role_exists
+  become_user: postgres
+  changed_when: false
+
+- name: Create redmine role
+  ansible.builtin.command:
+    argv:
+      - psql
+      - '-c'
+      - "CREATE ROLE {{ redmine_db_user }} LOGIN ENCRYPTED PASSWORD '{{ redmine_db_password }}' NOINHERIT VALID UNTIL 'infinity';"
+  when: redmine_role_exists.stdout.strip() != '1'
+  become_user: postgres
+
+- name: Check if redmine database exists
+  ansible.builtin.command:
+    argv:
+      - psql
+      - '-tAc'
+      - "SELECT 1 FROM pg_database WHERE datname='{{ redmine_db_name }}'"
+  register: redmine_db_exists
+  become_user: postgres
+  changed_when: false
+
+- name: Create redmine database
+  ansible.builtin.command:
+    argv:
+      - psql
+      - '-c'
+      - "CREATE DATABASE {{ redmine_db_name }} WITH ENCODING='UTF8' OWNER={{ redmine_db_user }};"
+  when: redmine_db_exists.stdout.strip() != '1'
+  become_user: postgres
