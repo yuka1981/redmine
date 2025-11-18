@@ -53,24 +53,33 @@
     - '{{ redmine_root }}/log'
     - '{{ redmine_root }}/files'
 
-- name: Deploy Redmine database configuration
-  ansible.builtin.template:
-    src: database.yml.j2
-    dest: '{{ redmine_root }}/config/database.yml'
-    owner: '{{ redmine_user }}'
-    group: '{{ redmine_group }}'
-    mode: '0640'
-
 - name: Configure bundler path for Redmine
+  become: true
   ansible.builtin.command:
-    cmd: "{{ ruby_prefix }}/bin/bundle config set --local path 'vendor/bundle'"
+    argv:
+      - sudo
+      - -u
+      - '{{ redmine_user }}'
+      - '{{ ruby_prefix }}/bin/bundle'
+      - config
+      - set
+      - --local
+      - path
+      - vendor/bundle
     chdir: '{{ redmine_root }}'
-  become_user: '{{ redmine_user }}'
 
 - name: Install Redmine gem dependencies
+  become: true
   ansible.builtin.command:
-    cmd: '{{ ruby_prefix }}/bin/bundle install --without development test'
+    argv:
+      - sudo
+      - -u
+      - '{{ redmine_user }}'
+      - '{{ ruby_prefix }}/bin/bundle'
+      - install
+      - --without
+      - development
+      - test
     chdir: '{{ redmine_root }}'
-  become_user: '{{ redmine_user }}'
   args:
     creates: '{{ redmine_root }}/vendor/bundle'
