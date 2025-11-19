@@ -44,14 +44,34 @@
     state: directory
     owner: '{{ redmine_user }}'
     group: '{{ redmine_group }}'
-    mode: '0750'
+    mode: '0755'
   loop:
+    - '{{ redmine_root_base }}'
     - '{{ redmine_root }}'
     - '{{ redmine_root }}/tmp'
+    - '{{ redmine_root }}/tmp/pdf'
     - '{{ redmine_root }}/tmp/pids'
     - '{{ redmine_root }}/tmp/sockets'
     - '{{ redmine_root }}/log'
     - '{{ redmine_root }}/files'
+    - '{{ redmine_root }}/public/assets'
+
+- name: Ensure Puma & PG gems are managed by Ansible
+  ansible.builtin.blockinfile:
+    path: '{{ redmine_root }}/Gemfile'
+    insertafter: EOF
+    marker: '# {mark} ANSIBLE MANAGED REDMINE GEMS'
+    block: |
+      gem 'puma'
+      gem 'pg', '~> 1.5.3'
+
+- name: Configure Redmine database connection
+  ansible.builtin.template:
+    src: database.yml.j2
+    dest: '{{ redmine_root }}/config/database.yml'
+    owner: '{{ redmine_user }}'
+    group: '{{ redmine_group }}'
+    mode: '0640'
 
 - name: Configure bundler path for Redmine
   become: true
@@ -68,6 +88,20 @@
       - vendor/bundle
     chdir: '{{ redmine_root }}'
 
+- name: Check if bundle is satisfied
+  become: true
+  ansible.builtin.command:
+    argv:
+      - sudo
+      - -u
+      - '{{ redmine_user }}'
+      - '{{ ruby_prefix }}/bin/bundle'
+      - check
+    chdir: '{{ redmine_root }}'
+  register: bundle_check
+  failed_when: bundle_check.rc not in [0, 1]
+  changed_when: false
+
 - name: Install Redmine gem dependencies
   become: true
   ansible.builtin.command:
@@ -81,5 +115,78 @@
       - development
       - test
     chdir: '{{ redmine_root }}'
+  when: bundle_check.rc != 0
+
+- name: Generate Redmine secret token
+  become: true
+  ansible.builtin.command:
+    argv:
+      - sudo
+      - -u
+      - '{{ redmine_user }}'
+      - '{{ ruby_prefix }}/bin/bundle'
+      - exec
+      - rake
+      - generate_secret_token
+    chdir: '{{ redmine_root }}'
+  # args:
+  # creates: '{{ redmine_root }}/config/initializers/secret_token.rb'
+
+- name: Run Redmine database migrations
+  become: true
+  ansible.builtin.command:
+    argv:
+      - sudo
+      - -u
+      - '{{ redmine_user }}'
+      - RAILS_ENV=production
+      - '{{ ruby_prefix }}/bin/bundle'
+      - exec
+      - rake
+      - db:migrate
+    chdir: '{{ redmine_root }}'
+
+- name: Load Redmine default data
+  become: true
+  ansible.builtin.command:
+    argv:
+      - sudo
+      - -u
+      - '{{ redmine_user }}'
+      - RAILS_ENV=production
+      - REDMINE_LANG=en
+      - '{{ ruby_prefix }}/bin/bundle'
+      - exec
+      - rake
+      - redmine:load_default_data
   args:
-    creates: '{{ redmine_root }}/vendor/bundle'
+    chdir:
+      '{{ redmine_root }}'
+      # - REDMINE_LANG='{{ redmine_default_lang }}'
+    # creates: '{{ redmine_root }}/tmp/.default_data_loaded'
+  register: redmine_default_data
+
+- name: Mark Redmine default data load
+  become: true
+  become_user: '{{ redmine_user }}'
+  ansible.builtin.file:
+    path: '{{ redmine_root }}/tmp/.default_data_loaded'
+    state: touch
+    owner: '{{ redmine_user }}'
+    group: '{{ redmine_group }}'
+  when: redmine_default_data is changed
+
+- name: Ensure writable Redmine directories ownership
+  become: true
+  ansible.builtin.file:
+    path: '{{ item }}'
+    state: directory
+    owner: '{{ redmine_user }}'
+    group: '{{ redmine_group }}'
+    mode: '0755'
+    recurse: true
+  loop:
+    - '{{ redmine_root }}/files'
+    - '{{ redmine_root }}/log'
+    - '{{ redmine_root }}/tmp'
+    - '{{ redmine_root }}/public/assets'

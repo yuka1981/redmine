@@ -25,3 +25,14 @@
     name: nginx
     state: restarted
     enabled: true
+
+- name: Ensure redmine group exists for nginx access
+  ansible.builtin.group:
+    name: '{{ redmine_group }}'
+    state: present
+
+- name: Add nginx user to redmine group
+  ansible.builtin.user:
+    name: nginx
+    groups: '{{ redmine_group }}'
+    append: true

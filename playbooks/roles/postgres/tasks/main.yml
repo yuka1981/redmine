@@ -29,56 +29,123 @@
     name: python3-psycopg2
     state: present
 
-# ===== redmine role =====
+# todo: transfer the following command to tasks
+# - CREATE ROLE redmine LOGIN ENCRYPTED PASSWORD 'my_password' NOINHERIT VALID UNTIL 'infinity';
+# - CREATE DATABASE redmine WITH ENCODING='UTF8' OWNER=redmine;
 
-- name: Check if redmine role exists
-  become: true # 用 root 跑
-  ansible.builtin.command:
-    argv:
-      - sudo
-      - -u
-      - postgres
-      - psql
-      - -tAc
-      - "SELECT 1 FROM pg_roles WHERE rolname='{{ redmine_db_user }}'"
-  register: redmine_role_exists
+- name: Check if PostgreSQL enforces password authentication
+  become: true
+  ansible.builtin.command: >
+    grep -E '^\s*[^#].*\b(md5)\b' /var/lib/pgsql/data/pg_hba.conf
+  register: pg_hba_password_auth
   changed_when: false
+  failed_when: false
 
-- name: Create redmine role
+- name: Ensure redmine role exists
   become: true
+  become_user: postgres
+  community.postgresql.postgresql_user:
+    name: '{{ redmine_db_user }}'
+    password: '{{ redmine_db_password }}'
+    state: present
+    role_attr_flags: LOGIN
+    expires: infinity
+  when: pg_hba_password_auth.rc != 0
+
+- name: Ensure postgres superuser password is configured via socket
+  become: true
+  become_user: postgres
+  community.postgresql.postgresql_user:
+    name: postgres
+    password: '{{ postgres_superuser_password }}'
+  when: pg_hba_password_auth.rc != 0
+
+- name: Ensure redmine database exists
+  become: true
+  become_user: postgres
+  community.postgresql.postgresql_db:
+    name: '{{ redmine_db_name }}'
+    owner: '{{ redmine_db_user }}'
+    encoding: UTF8
+    template: template0
+  when: pg_hba_password_auth.rc != 0
+
+- name: Ensure redmine schema exists
+  become: true
+  become_user: postgres
+  community.postgresql.postgresql_schema:
+    db: '{{ redmine_db_name }}'
+    name: '{{ redmine_db_name }}'
+    owner: '{{ redmine_db_user }}'
+    state: present
+  when: pg_hba_password_auth.rc != 0
+
+# - name: Ensure postgres superuser password is configured
+#   become: true
+#   become_user: postgres
+#   community.postgresql.postgresql_user:
+#     user: postgres
+#     login_user: postgres
+#     login_host: '{{ redmine_db_host }}'
+#     login_password: '{{ postgres_superuser_password }}'
+#   when: pg_hba_password_auth.rc == 0
+
+- name: Ensure password authentication is enforced for local access
+  become: true
+  block:
+    - name: Require passwords for local socket connections
+      community.postgresql.postgresql_pg_hba:
+        dest: /var/lib/pgsql/data/pg_hba.conf
+        contype: local
+        databases: all
+        users: all
+        method: md5
+        state: present
+        address: ''
+      register: pg_hba_local
+
+    - name: Require passwords for IPv4 localhost connections
+      community.postgresql.postgresql_pg_hba:
+        dest: /var/lib/pgsql/data/pg_hba.conf
+        contype: host
+        address: 127.0.0.1/32
+        databases: all
+        users: all
+        method: md5
+        state: present
+      register: pg_hba_ipv4
+
+    - name: Require passwords for IPv6 localhost connections
+      community.postgresql.postgresql_pg_hba:
+        dest: /var/lib/pgsql/data/pg_hba.conf
+        contype: host
+        address: ::1/128
+        databases: all
+        users: all
+        method: md5
+        state: present
+      register: pg_hba_ipv6
+
+    - name: Reload PostgreSQL if authentication rules changed
+      ansible.builtin.service:
+        name: postgresql
+        state: reloaded
+      when: pg_hba_local.changed or pg_hba_ipv4.changed or pg_hba_ipv6.changed
+
+- name: Verify redmine user can authenticate with password
+  become: true
+  become_user: postgres
   ansible.builtin.command:
     argv:
-      - sudo
-      - -u
-      - postgres
       - psql
-      - -c
-      - "CREATE ROLE {{ redmine_db_user }} LOGIN ENCRYPTED PASSWORD '{{ redmine_db_password }}' NOINHERIT VALID UNTIL 'infinity';"
-  when: redmine_role_exists.stdout.strip() != '1'
-
-# ===== redmine database =====
-
-- name: Check if redmine database exists
-  become: true
-  ansible.builtin.command:
-    argv:
-      - sudo
-      - -u
-      - postgres
-      - psql
+      - -h
+      - '{{ redmine_db_host }}'
+      - -U
+      - '{{ redmine_db_user }}'
+      - -d
+      - '{{ redmine_db_name }}'
       - -tAc
-      - "SELECT 1 FROM pg_database WHERE datname='{{ redmine_db_name }}'"
-  register: redmine_db_exists
+      - 'SELECT 1;'
+  environment:
+    PGPASSWORD: '{{ redmine_db_password }}'
   changed_when: false
-
-- name: Create redmine database
-  become: true
-  ansible.builtin.command:
-    argv:
-      - sudo
-      - -u
-      - postgres
-      - psql
-      - -c
-      - "CREATE DATABASE {{ redmine_db_name }} WITH ENCODING='UTF8' OWNER={{ redmine_db_user }};"
-  when: redmine_db_exists.stdout.strip() != '1'

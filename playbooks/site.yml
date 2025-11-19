@@ -3,10 +3,10 @@
   become: true
 
   roles:
-    - role: common
-    - role: ruby
-    - role: postgres
-    - role: redmine
-    - role: puma
-    - role: nginx
-    - role: selinux
+    - { role: 'common', tags: 'common' }
+    - { role: 'ruby', tags: 'ruby' }
+    - { role: 'postgres', tags: 'postgres' }
+    - { role: 'redmine', tags: 'redmine' }
+    - { role: 'puma', tags: 'puma' }
+    - { role: 'nginx', tags: 'nginx' }
+    - { role: 'selinux', tags: 'selinux' }
