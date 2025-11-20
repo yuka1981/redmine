@@ -1,0 +1,2 @@
+[redmine_servers]
+redmine ansible_host=<your_redmine_server_ip> ansible_user=<your_ssh_user> ansible_become=true ansible_ssh_private_key_file=<your_ssh_private_key_file>
