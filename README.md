@@ -28,7 +28,7 @@ This repository automates a production-ready Redmine 6.1.0 node on Rocky Linux (
 
    Replace the placeholders in `playbooks/inventory.ini` with each Redmine host's SSH details.
 
-2. **Configure variables** – Adjust `playbooks/group_vars/all.yml` if you need different versions, paths, or database credentials. Defaults build Ruby to `/opt/ruby/3.4.7`, Redmine to `/opt/redmine/6.1.0`, and configure PostgreSQL with `redmine`/`QCT@Admin`.
+2. **Configure variables** – Adjust `playbooks/group_vars/all.yml` if you need different versions, paths, or database credentials. Defaults build Ruby to `/opt/ruby/3.4.7`, Redmine to `/opt/redmine/6.1.0`, and configure PostgreSQL with `redmine`/`<your_password>`.
 
 3. **Run the playbook**
    ```bash
@@ -72,7 +72,7 @@ To override values per-host, create host/group var files that Ansible will load 
 
 - Verify services: `sudo systemctl status redmine-puma redmine-sidekiq redis nginx postgresql`.
 - Confirm SELinux contexts: `sudo ls -Z /opt/redmine/6.1.0/tmp/sockets`.
-- Check Redmine: visit `http://<server>` and log in with the default admin account (`admin`/`admin`, then force a password change).
+- Check Redmine: visit `http://<server_ip>` and log in with the default admin account (`admin`/`admin`, then force a password change).
 - Logs live under `/opt/redmine/6.1.0/log` and `/var/log/nginx`.
 
 Re-running `ansible-playbook` is safe; tasks are idempotent. Use tags when applying fixes (e.g., `--tags postgres` after editing DB vars). For TLS, extend the nginx role with certificates and reload nginx.
