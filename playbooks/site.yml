@@ -11,4 +11,5 @@
     - { role: 'redis', tags: 'redis' }
     - { role: 'sidekiq', tags: 'sidekiq' }
     - { role: 'nginx', tags: 'nginx' }
+    - { role: 'firewalld', tags: 'firewalld' }
     - { role: 'selinux', tags: 'selinux' }

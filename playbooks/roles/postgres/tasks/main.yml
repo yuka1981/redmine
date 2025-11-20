@@ -80,16 +80,6 @@
     state: present
   when: pg_hba_password_auth.rc != 0
 
-# - name: Ensure postgres superuser password is configured
-#   become: true
-#   become_user: postgres
-#   community.postgresql.postgresql_user:
-#     user: postgres
-#     login_user: postgres
-#     login_host: '{{ redmine_db_host }}'
-#     login_password: '{{ postgres_superuser_password }}'
-#   when: pg_hba_password_auth.rc == 0
-
 - name: Ensure password authentication is enforced for local access
   become: true
   block:

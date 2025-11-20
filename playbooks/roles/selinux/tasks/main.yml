@@ -65,93 +65,11 @@
   loop_control:
     label: '{{ item }}'
 
-# - name: Label Redmine Puma sockets directory as httpd_var_run_t
-#   community.general.sefcontext:
-#     target: '{{ redmine_root }}/tmp/sockets(/.*)?'
-#     setype: httpd_var_run_t
-#     state: present
-
-# - name: Label Redmine Puma pids directory as httpd_var_run_t
-#   community.general.sefcontext:
-#     target: '{{ redmine_root }}/tmp/pids(/.*)?'
-#     setype: httpd_var_run_t
-#     state: present
-
-# - name: Label Puma wrapper as httpd_exec_t
-#   community.general.sefcontext:
-#     target: '{{ redmine_root }}/bin/puma-wrapper'
-#     setype: httpd_exec_t
-#     state: present
-
-# - name: Label Redmine log directory as httpd_sys_rw_content_t
-#   community.general.sefcontext:
-#     target: '{{ redmine_root }}/log(/.*)?'
-#     setype: httpd_sys_rw_content_t
-#     state: present
-
-# - name: Label Redmine cache directory as httpd_sys_rw_content_t
-#   community.general.sefcontext:
-#     target: '{{ redmine_root }}/tmp/cache(/.*)?'
-#     setype: httpd_sys_rw_content_t
-#     state: present
-
-# - name: Label Redmine public assets directory as httpd_sys_rw_content_t
-#   community.general.sefcontext:
-#     target: '{{ redmine_root }}/public/assets(/.*)?'
-#     setype: httpd_sys_rw_content_t
-#     state: present
-
-# - name: Label Redmine files directory as httpd_sys_rw_content_t
-#   community.general.sefcontext:
-#     target: '{{ redmine_root }}/files(/.*)?'
-#     setype: httpd_sys_rw_content_t
-#     state: present
-
-# - name: Apply SELinux context to pids directory
-#   ansible.builtin.command:
-#     cmd: 'restorecon -Rv {{ redmine_root }}/tmp/pids'
-
-# - name: Apply SELinux context to sockets directory
-#   ansible.builtin.command:
-#     cmd: 'restorecon -Rv {{ redmine_root }}/tmp/sockets'
-
-# - name: Apply SELinux context to Puma wrapper
-#   ansible.builtin.command:
-#     cmd: 'restorecon -v {{ redmine_root }}/bin/puma-wrapper'
-
-# - name: Apply SELinux context to log directory
-#   ansible.builtin.command:
-#     cmd: 'restorecon -Rv {{ redmine_root }}/log'
-
-# - name: Apply SELinux context to cache directory
-#   ansible.builtin.command:
-#     cmd: 'restorecon -Rv {{ redmine_root }}/tmp/cache'
-
-# - name: Apply SELinux context to files directory
-#   ansible.builtin.command:
-#     cmd: 'restorecon -Rv {{ redmine_root }}/files'
-
-# - name: Apply SELinux context to public assets directory
-#   ansible.builtin.command:
-#     cmd: 'restorecon -Rv {{ redmine_root }}/public/assets'
-
-# - name: Label bundle binary as httpd_exec_t
-#   community.general.sefcontext:
-#     target: '{{ ruby_prefix }}/bin/bundle'
-#     setype: httpd_exec_t
-#     state: present
-
-# - name: Label Ruby binary as httpd_exec_t
-#   community.general.sefcontext:
-#     target: '{{ ruby_prefix }}/bin/ruby'
-#     setype: httpd_exec_t
-#     state: present
-
-# - name: Allow httpd to make outbound network connections (optional)
-#   ansible.posix.seboolean:
-#     name: httpd_can_network_connect
-#     state: true
-#     persistent: true
+- name: Allow httpd_t domain to connect to databases
+  ansible.posix.seboolean:
+    name: httpd_can_network_connect_db
+    state: true
+    persistent: true
 
 - name: Update redmine-puma.service to use wrapper
   ansible.builtin.copy:
