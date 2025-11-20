@@ -1,0 +1,7 @@
+---
+production:
+  :concurrency: 5
+  :queues:
+    - default
+    - mailers
+  :logfile: "{{ redmine_root }}/log/sidekiq.log"

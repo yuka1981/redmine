@@ -8,5 +8,7 @@
     - { role: 'postgres', tags: 'postgres' }
     - { role: 'redmine', tags: 'redmine' }
     - { role: 'puma', tags: 'puma' }
+    - { role: 'redis', tags: 'redis' }
+    - { role: 'sidekiq', tags: 'sidekiq' }
     - { role: 'nginx', tags: 'nginx' }
     - { role: 'selinux', tags: 'selinux' }

@@ -1,0 +1,12 @@
+# Managed by Ansible
+
+production:
+  queue_adapter: sidekiq
+  queue_adapter_options:
+    url: redis://127.0.0.1:6379/0
+  # Redmine 會用這個指令來做縮圖、匯出 PNG
+  imagemagick_convert_command: /usr/bin/magick
+  # Redmine 在 repo 關掉 bzr 設定仍會強制檢查 command 是否存在
+  scm_bazaar_command: /bin/true
+
+  

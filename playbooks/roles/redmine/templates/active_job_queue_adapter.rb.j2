@@ -1,0 +1,6 @@
+# Managed by Ansible
+
+if Rails.env.production?
+  adapter = Redmine::Configuration['queue_adapter'] || 'sidekiq'
+  Rails.application.config.active_job.queue_adapter = adapter.to_sym
+end

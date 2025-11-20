@@ -1,0 +1,24 @@
+# Managed by Ansible
+
+bind {{ redis_bind_address }}
+port {{ redis_port }}
+protected-mode yes
+
+# daemonize 交給 systemd 管，所以這裡要關掉
+daemonize no
+supervised systemd
+
+dir {{ redis_data_dir }}
+
+# 一些保守的設定，你可以依需求調整
+save 900 1
+save 300 10
+save 60 10000
+
+rdbcompression yes
+dbfilename dump.rdb
+
+# log 讓 systemd 收就好，不用額外檔案
+logfile ""
+
+# 關掉 cluster / replica 等 advanced 功能（不需要就先不要開）

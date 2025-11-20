@@ -1,0 +1,148 @@
+---
+- name: Install build dependencies for Redis
+  become: true
+  ansible.builtin.dnf:
+    name:
+      - gcc
+      - make
+      - tar
+      - systemd-devel
+      - openssl-devel
+    state: present
+
+- name: Create redis group
+  become: true
+  ansible.builtin.group:
+    name: '{{ redis_group }}'
+    system: true
+
+- name: Create redis user
+  become: true
+  ansible.builtin.user:
+    name: '{{ redis_user }}'
+    group: '{{ redis_group }}'
+    system: true
+    create_home: false
+    shell: /sbin/nologin
+    comment: 'Redis service account'
+
+- name: Ensure source directory exists
+  become: true
+  ansible.builtin.file:
+    path: '{{ redis_src_dir }}'
+    state: directory
+    mode: '0755'
+
+- name: Download Redis source tarball
+  become: true
+  ansible.builtin.get_url:
+    url: 'https://download.redis.io/releases/redis-{{ redis_version }}.tar.gz'
+    dest: '{{ redis_src_dir }}/redis-{{ redis_version }}.tar.gz'
+    mode: '0644'
+
+- name: Extract Redis source
+  become: true
+  ansible.builtin.unarchive:
+    src: '{{ redis_src_dir }}/redis-{{ redis_version }}.tar.gz'
+    dest: '{{ redis_src_dir }}'
+    remote_src: true
+    creates: '{{ redis_src_dir }}/redis-{{ redis_version }}/src/redis-server'
+
+- name: Build Redis from source
+  become: true
+  ansible.builtin.command:
+    cmd: make
+    chdir: '{{ redis_src_dir }}/redis-{{ redis_version }}'
+  args:
+    creates: '{{ redis_src_dir }}/redis-{{ redis_version }}/src/redis-server'
+
+- name: Install Redis into {{ redis_prefix }}
+  become: true
+  ansible.builtin.command:
+    cmd: make PREFIX={{ redis_prefix }} install
+    chdir: '{{ redis_src_dir }}/redis-{{ redis_version }}'
+  args:
+    creates: '{{ redis_prefix }}/bin/redis-server'
+
+- name: Ensure /opt/redis and "current" symlink exist
+  become: true
+  ansible.builtin.file:
+    path: '/opt/redis'
+    state: directory
+    mode: '0755'
+
+- name: Symlink /opt/redis/current to installed version
+  become: true
+  ansible.builtin.file:
+    src: '{{ redis_prefix }}'
+    dest: '/opt/redis/current'
+    state: link
+    force: true
+
+- name: Ensure Redis config and data directories exist
+  become: true
+  ansible.builtin.file:
+    path: '{{ item.path }}'
+    state: directory
+    owner: '{{ item.owner | default(redis_user) }}'
+    group: '{{ item.group | default(redis_group) }}'
+    mode: "{{ item.mode | default('0750') }}"
+  loop:
+    - {
+        path: '{{ redis_conf_dir }}',
+        owner: 'root',
+        group: 'root',
+        mode: '0755',
+      }
+    - {
+        path: '{{ redis_data_dir }}',
+        owner: '{{ redis_user }}',
+        group: '{{ redis_group }}',
+        mode: '0750',
+      }
+
+- name: Install redis.conf
+  become: true
+  ansible.builtin.template:
+    src: redis.conf.j2
+    dest: '{{ redis_conf_dir }}/redis.conf'
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Install systemd unit for Redis (from source)
+  become: true
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/redis.service
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=Redis In-Memory Data Store (from source)
+      After=network.target
+      Wants=network-online.target
+
+      [Service]
+      Type=notify
+      User={{ redis_user }}
+      Group={{ redis_group }}
+      ExecStart=/opt/redis/current/bin/redis-server {{ redis_conf_dir }}/redis.conf --supervised systemd
+      ExecStop=/opt/redis/current/bin/redis-cli -p {{ redis_port }} shutdown
+      TimeoutStartSec=0
+      Restart=on-failure
+      LimitNOFILE=10032
+
+      [Install]
+      WantedBy=multi-user.target
+
+- name: Reload systemd for Redis
+  become: true
+  ansible.builtin.command:
+    cmd: systemctl daemon-reload
+  changed_when: false
+
+- name: Enable and start Redis
+  become: true
+  ansible.builtin.service:
+    name: redis
+    enabled: true
+    state: started

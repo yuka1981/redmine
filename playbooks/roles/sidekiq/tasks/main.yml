@@ -1,0 +1,44 @@
+---
+- name: Install Sidekiq systemd service unit
+  become: true
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/redmine-sidekiq.service
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=Redmine Sidekiq Background Worker
+      After=network.target redis.service
+      PartOf=redmine-puma.service
+
+      [Service]
+      Type=simple
+      WorkingDirectory={{ redmine_root }}
+      User={{ redmine_user }}
+      Group={{ redmine_group }}
+      Environment=RAILS_ENV=production
+      # 可以視需要設定 HOME，避免某些 gem 尋找家目錄出問題
+      Environment=HOME={{ redmine_root_base }}
+      Environment=PATH={{ ruby_prefix }}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
+      ExecStart={{ ruby_prefix }}/bin/bundle exec sidekiq -e production -C config/sidekiq.yml
+      Restart=always
+      RestartSec=5s
+
+      StandardOutput=journal
+      StandardError=journal
+      SyslogIdentifier=redmine-sidekiq
+
+      [Install]
+      WantedBy=multi-user.target
+
+- name: Reload systemd daemon for Sidekiq
+  become: true
+  ansible.builtin.command:
+    cmd: systemctl daemon-reload
+  changed_when: false
+
+- name: Enable and start Sidekiq service
+  become: true
+  ansible.builtin.service:
+    name: redmine-sidekiq
+    enabled: true
+    state: started

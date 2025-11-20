@@ -9,6 +9,8 @@ Group={{ redmine_group }}
 WorkingDirectory={{ redmine_root }}
 
 Environment=RAILS_ENV=production
+Environment=HOME={{ redmine_root_base }}
+Environment=BUNDLE_USER_HOME=/opt/redmine/.bundle_home
 Environment=PATH={{ ruby_prefix }}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
 UMask=0007
 

@@ -31,8 +31,8 @@
     setype: httpd_var_run_t
     state: present
   loop:
-    - '{{ redmine_root }}/tmp/sockets(/.*)?'
     - '{{ redmine_root }}/tmp/pids(/.*)?'
+    - '{{ redmine_root }}/tmp/sockets(/.*)?'
   loop_control:
     label: '{{ item }}'
 
@@ -42,10 +42,11 @@
     setype: httpd_sys_rw_content_t
     state: present
   loop:
-    - '{{ redmine_root }}/log(/.*)?'
-    - '{{ redmine_root }}/tmp/cache(/.*)?'
     - '{{ redmine_root }}/files(/.*)?'
+    - '{{ redmine_root }}/log(/.*)?'
     - '{{ redmine_root }}/public/assets(/.*)?'
+    - '{{ redmine_root }}/tmp/cache(/.*)?'
+    - '{{ redmine_root }}/tmp/thumbnails(/.*)?'
   loop_control:
     label: '{{ item }}'
 
@@ -53,13 +54,14 @@
   ansible.builtin.command:
     cmd: 'restorecon -Rv {{ item }}'
   loop:
+    - '{{ redmine_root }}/bin/puma-wrapper'
+    - '{{ redmine_root }}/files'
+    - '{{ redmine_root }}/log'
+    - '{{ redmine_root }}/public/assets'
+    - '{{ redmine_root }}/tmp/cache'
     - '{{ redmine_root }}/tmp/pids'
     - '{{ redmine_root }}/tmp/sockets'
-    - '{{ redmine_root }}/bin/puma-wrapper'
-    - '{{ redmine_root }}/log'
-    - '{{ redmine_root }}/tmp/cache'
-    - '{{ redmine_root }}/files'
-    - '{{ redmine_root }}/public/assets'
+    - '{{ redmine_root }}/tmp/thumbnails'
   loop_control:
     label: '{{ item }}'
 

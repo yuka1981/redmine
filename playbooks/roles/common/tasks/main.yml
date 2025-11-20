@@ -36,6 +36,11 @@
       - ImageMagick-devel
       - net-tools
       - vim
+      - ghostscript
+      - subversion
+      - mercurial
+      - cvs
+
     state: present
 
 - name: Ensure base /opt directories exist

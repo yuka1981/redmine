@@ -7,7 +7,7 @@ threads min_threads_count, max_threads_count
 
 environment ENV.fetch("RAILS_ENV") { "production" }
 
-workers ENV.fetch("WEB_CONCURRENCY", 2)
+workers ENV.fetch("WEB_CONCURRENCY", 1)
 
 bind "unix://{{ redmine_root }}/tmp/sockets/puma.sock"
 

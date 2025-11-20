@@ -55,6 +55,7 @@
     - '{{ redmine_root }}/log'
     - '{{ redmine_root }}/files'
     - '{{ redmine_root }}/public/assets'
+    - '{{ redmine_root }}/tmp/thumbnails'
 
 - name: Ensure Puma & PG gems are managed by Ansible
   ansible.builtin.blockinfile:
@@ -64,11 +65,39 @@
     block: |
       gem 'puma'
       gem 'pg', '~> 1.5.3'
+      gem 'sidekiq', '~> 7.3'
+      gem "ostruct"
 
 - name: Configure Redmine database connection
   ansible.builtin.template:
     src: database.yml.j2
     dest: '{{ redmine_root }}/config/database.yml'
+    owner: '{{ redmine_user }}'
+    group: '{{ redmine_group }}'
+    mode: '0640'
+
+- name: Configure Redmine application settings (queue adapter, etc.)
+  become: true
+  ansible.builtin.template:
+    src: configuration.yml.j2
+    dest: '{{ redmine_root }}/config/configuration.yml'
+    owner: '{{ redmine_user }}'
+    group: '{{ redmine_group }}'
+    mode: '0640'
+
+- name: Configure ActiveJob queue adapter initializer
+  become: true
+  ansible.builtin.template:
+    src: active_job_queue_adapter.rb.j2
+    dest: '{{ redmine_root }}/config/initializers/active_job_queue_adapter.rb'
+    owner: '{{ redmine_user }}'
+    group: '{{ redmine_group }}'
+    mode: '0640'
+
+- name: Configure Sidekiq for Redmine
+  ansible.builtin.template:
+    src: sidekiq.yml.j2
+    dest: '{{ redmine_root }}/config/sidekiq.yml'
     owner: '{{ redmine_user }}'
     group: '{{ redmine_group }}'
     mode: '0640'

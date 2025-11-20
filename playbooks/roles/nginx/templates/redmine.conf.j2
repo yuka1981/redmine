@@ -11,7 +11,7 @@ server {
     access_log /var/log/nginx/redmine_access.log;
     error_log  /var/log/nginx/redmine_error.log;
 
-    client_max_body_size 20m;
+    client_max_body_size 50m;
 
     location ~ ^/(assets|plugin_assets|themes|favicon.ico) {
         expires max;
