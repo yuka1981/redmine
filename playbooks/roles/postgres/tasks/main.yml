@@ -29,6 +29,15 @@
     name: python3-psycopg2
     state: present
 
+- name: Ensure database passwords are provided
+  ansible.builtin.assert:
+    that:
+      - (postgres_superuser_password | default('', true)) | length > 0
+      - (redmine_db_password | default('', true)) | length > 0
+    fail_msg: >
+      Set postgres_superuser_password and redmine_db_password in playbooks/group_vars/all.yml
+      before running this playbook.
+
 - name: Check if PostgreSQL enforces password authentication
   become: true
   ansible.builtin.command: >
