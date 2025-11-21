@@ -29,10 +29,6 @@
     name: python3-psycopg2
     state: present
 
-# todo: transfer the following command to tasks
-# - CREATE ROLE redmine LOGIN ENCRYPTED PASSWORD 'my_password' NOINHERIT VALID UNTIL 'infinity';
-# - CREATE DATABASE redmine WITH ENCODING='UTF8' OWNER=redmine;
-
 - name: Check if PostgreSQL enforces password authentication
   become: true
   ansible.builtin.command: >
