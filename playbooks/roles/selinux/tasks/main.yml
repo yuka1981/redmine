@@ -71,6 +71,13 @@
     state: true
     persistent: true
 
+- name: Allow httpd_t to connect to remote network services (SMTP, Redis, etc.)
+  become: true
+  ansible.posix.seboolean:
+    name: httpd_can_network_connect
+    state: true
+    persistent: true
+
 - name: Update redmine-puma.service to use wrapper
   ansible.builtin.copy:
     dest: /etc/systemd/system/redmine-puma.service
